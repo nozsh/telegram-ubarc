@@ -63,7 +63,7 @@ deactivate
 
 Нужно создать приложение, платформа - Desktop или Mobile, это не особо важно. Имя и короткое имя, остальное так же не важно.
 
-> [!CAUTION] ВАЖНО!
+> [!CAUTION]
 >
 > `NEW_USER_BOT_API_ID` и `NEW_USER_BOT_API_HASH`
 >
