@@ -71,6 +71,7 @@ def run_userbot(userbot_id):
             last_response_times[user_id] = current_time  # Обновление времени последнего ответа
         else:
             logging.info(f"{userbot_id} выключен, сообщение не отправлено.")
+            return
 
     userbot.run()  # Запуск юзербота
 
