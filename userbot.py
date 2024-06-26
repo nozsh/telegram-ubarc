@@ -5,6 +5,7 @@ import logging
 import multiprocessing
 from dotenv import load_dotenv
 import os
+import asyncio
 
 # Загрузка переменных окружения из файла .env
 load_dotenv()
@@ -12,6 +13,7 @@ load_dotenv()
 # Получение переменных окружения
 userbots_str = os.getenv('USERBOTS')  # Строка с идентификаторами юзерботов, разделенными запятыми
 cooldown_time = int(os.getenv('COOLDOWN_TIME'))  # Время cooldown в секундах, преобразованное в целое число
+alive_time = int(os.getenv('ALIVE_TIME'))  # Время alive в секундах, преобразованное в целое число
 
 # Преобразование строки userbots в список
 userbots = userbots_str.split(',')  # Разделение строки на отдельные идентификаторы юзерботов
@@ -31,49 +33,62 @@ def run_userbot(userbot_id):
     # Путь к файлу сессии
     session_file = f'{directory}/{userbot_id}_session.session'  # Файл сессии для юзербота
 
-    userbot = Client(session_file)  # Создание клиента юзербота
+    async def main():
+        while True:
+            try:
+                userbot = Client(session_file)
+                await userbot.start()
+                logging.info(f"{userbot_id}: Бот запущен.")
 
-    # Словарь для хранения времени последнего ответа для каждого пользователя
-    last_response_times = {}
+                # Словарь для хранения времени последнего ответа для каждого пользователя
+                last_response_times = {}
 
-    @userbot.on_message(filters.private)
-    async def handler(client, message):
-        """
-        Обработчик сообщений для юзербота.
-        
-        :param client: Клиент Pyrogram
-        :param message: Полученное сообщение
-        """
-        user_id = message.from_user.id  # Идентификатор отправителя сообщения
-        current_time = time.time()  # Текущее время в секундах
+                @userbot.on_message(filters.private)
+                async def handler(client, message):
+                    """
+                    Обработчик сообщений для юзербота.
+                    
+                    :param client: Клиент Pyrogram
+                    :param message: Полученное сообщение
+                    """
+                    user_id = message.from_user.id  # Идентификатор отправителя сообщения
+                    current_time = time.time()  # Текущее время в секундах
 
-        status_file = f'{directory}/{userbot_id}_status.txt'  # Файл статуса юзербота
-        message_file = f'{directory}/{userbot_id}_message.txt'  # Файл с текстом сообщения для отправки
-        
-        with open(status_file, 'r') as file:
-            status = file.read().strip()  # Чтение статуса юзербота (1 - активен, иначе - неактивен)
-        
-        if status == '1':
-            # Проверка, что сообщение не отправлено самим юзерботом и не ботом
-            if message.from_user.is_self or message.from_user.is_bot:
-                return
+                    status_file = f'{directory}/{userbot_id}_status.txt'  # Файл статуса юзербота
+                    message_file = f'{directory}/{userbot_id}_message.txt'  # Файл с текстом сообщения для отправки
+                    
+                    with open(status_file, 'r') as file:
+                        status = file.read().strip()  # Чтение статуса юзербота (1 - активен, иначе - неактивен)
+                    
+                    if status == '1':
+                        # Проверка, что сообщение не отправлено самим юзерботом и не ботом
+                        if message.from_user.is_self or message.from_user.is_bot:
+                            return
 
-            # Проверка cooldown для пользователя
-            if user_id in last_response_times and current_time - last_response_times[user_id] < cooldown_time:
-                logging.info(f"{userbot_id}: Ответ пользователю {user_id} на cooldown.")
-                return
+                        # Проверка cooldown для пользователя
+                        if user_id in last_response_times and current_time - last_response_times[user_id] < cooldown_time:
+                            logging.info(f"{userbot_id}: Ответ пользователю {user_id} на cooldown.")
+                            return
 
-            # Чтение текста сообщения из файла
-            with open(message_file, 'r', encoding='utf-8') as file:
-                message_text = file.read()
-            await message.reply(message_text, parse_mode=ParseMode.HTML)  # Отправка сообщения
-            logging.info(f"Отправлено сообщение от {userbot_id}: {message_text}")
-            last_response_times[user_id] = current_time  # Обновление времени последнего ответа
-        else:
-            logging.info(f"{userbot_id} выключен, сообщение не отправлено.")
-            return
+                        # Чтение текста сообщения из файла
+                        with open(message_file, 'r', encoding='utf-8') as file:
+                            message_text = file.read()
+                        await message.reply(message_text, parse_mode=ParseMode.HTML)  # Отправка сообщения
+                        logging.info(f"Отправлено сообщение от {userbot_id}: {message_text}")
+                        last_response_times[user_id] = current_time  # Обновление времени последнего ответа
+                    else:
+                        logging.info(f"{userbot_id} выключен, сообщение не отправлено.")
+                        return
 
-    userbot.run()  # Запуск юзербота
+                while True:
+                    await asyncio.sleep(alive_time)  # Ожидание новых сообщений
+                    logging.info(f"{userbot_id}: Проверка состояния бота.")
+
+            except ConnectionResetError as e:
+                logging.error(f"Потеря соединения: {e}. Переподключение...")
+                await asyncio.sleep(5)  # Пауза перед повторным подключением
+
+    asyncio.run(main())
 
 if __name__ == '__main__':
     processes = []
