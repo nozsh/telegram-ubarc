@@ -53,6 +53,7 @@ deactivate
 - `ADMIN_ID` - ваш телеграм id, чтобы ботом пользовались только вы.
 - `USERBOTS` - ваши юзерботы, сюда указывать тоже самое что и в `NEW_USER_BOT_NAME`.
 - `COOLDOWN_TIME` - кулдаун на ответ юзербота.
+- `ALIVE_TIME` - каждое N время проверять жив ли юзербот.
 - `NEW_USER_BOT_NAME` - имя нового юзербота.
 - `NEW_USER_BOT_API_ID` - API ID
 - `NEW_USER_BOT_API_HASH` - API HASH
